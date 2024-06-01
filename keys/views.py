@@ -4,12 +4,13 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import CustomUserCreationForm, AccessKeyForm
 from .models import AccessKey, CustomUser
+from .utils import generate_random_string
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.http import JsonResponse
+from django.utils import timezone
+from datetime import timedelta
 
-
-# Create your views here.
 
 class SignUpView(View):
     def get(self, request):
@@ -60,6 +61,28 @@ class DashboardView(View):
         return render(request, 'keys/dashboard.html', context)
 
 
+@method_decorator(login_required, name='dispatch')
+class ProcureKeyView(View):
+    def get(self, request):
+        if AccessKey.objects.filter(user=request.user, status='active').exists():
+            return render(request, 'keys/procure_key.html', {'error_message': 'You already have an active key.'})
+
+        # Generate a new key
+        key = generate_random_string()
+        expiry_date = timezone.now() + timedelta(days=30)  # Set expiry date to 30 days from now
+
+        # Save the new key to the database
+        access_key = AccessKey.objects.create(
+            user=request.user,
+            key=key,
+            status='active',
+            expiry_date=expiry_date
+        )
+
+        return redirect('key_list')
+
+
+@method_decorator(login_required, name='dispatch')
 class RevokeKeyView(View):
     def post(self, request, key_id):
         if request.user.user_type == 'Admin':

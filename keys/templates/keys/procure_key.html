@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procure Key</title>
+</head>
+<body>
+    <h1>Procure Access Key</h1>
+    {% if error_message %}
+        <p style="color: red;">{{ error_message }}</p>
+    {% else %}
+        <p>Your new access key has been generated and is active.</p>
+    {% endif %}
+    <a href="{% url 'key_list' %}">Back to Key List</a>
+</body>
+</html>
