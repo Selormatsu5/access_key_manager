@@ -1,0 +1,81 @@
+{% extends 'keys/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mt-4">Welcome, {{ user.username }}</h1>
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="card-title">Active Keys</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Number of Active Keys: {{ active_keys_count }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="card-title">Expired Keys</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Number of Expired Keys: {{ expired_keys_count }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="card-title">Revoked Keys</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Number of Revoked Keys: {{ revoked_keys_count }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <h2>Access Keys</h2>
+                    <table class="table table-striped table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th scope="col">User</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Date of Procurement</th>
+                                <th scope="col">Expiry Date</th>
+                                {% if user.user_type == 'Admin' %}
+                                <th scope="col">Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key in access_keys %}
+                            <tr>
+                                <td>{{ key.user.email }}</td>
+                                <td>{{ key.status }}</td>
+                                <td>{{ key.date_of_procurement }}</td>
+                                <td>{{ key.expiry_date }}</td>
+                                {% if user.user_type == 'Admin' %}
+                                <td>
+                                    <form method="post" action="{% url 'revoke_key' key.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm">Revoke</button>
+                                    </form>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
