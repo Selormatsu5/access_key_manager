@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.forms import AuthenticationForm
-from .forms import CustomUserCreationForm, AccessKeyForm
+from django.contrib.auth.views import PasswordResetView, PasswordResetConfirmView, PasswordResetDoneView, PasswordResetCompleteView
+from .forms import CustomUserCreationForm, AccessKeyForm, CustomPasswordResetForm, CustomSetPasswordForm
 from .models import AccessKey, CustomUser
 from .utils import generate_random_string
 from django.contrib.auth.decorators import login_required
@@ -10,7 +11,8 @@ from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
-
+from datetime import timedelta
+from django.urls import reverse_lazy
 
 class SignUpView(View):
     def get(self, request):
@@ -24,7 +26,6 @@ class SignUpView(View):
             login(request, user)
             return redirect('dashboard')
         return render(request, 'keys/signup.html', {'form': form})
-
 
 class LoginView(View):
     def get(self, request):
@@ -43,7 +44,6 @@ class LoginView(View):
                 return redirect('dashboard')
         return render(request, 'keys/login.html', {'form': form})
 
-
 @method_decorator(login_required, name='dispatch')
 class DashboardView(View):
     def get(self, request):
@@ -59,7 +59,6 @@ class DashboardView(View):
             'revoked_keys_count': access_keys.filter(status='revoked').count(),
         }
         return render(request, 'keys/dashboard.html', context)
-
 
 @method_decorator(login_required, name='dispatch')
 class ProcureKeyView(View):
@@ -81,7 +80,6 @@ class ProcureKeyView(View):
 
         return redirect('key_list')
 
-
 @method_decorator(login_required, name='dispatch')
 class RevokeKeyView(View):
     def post(self, request, key_id):
@@ -90,7 +88,6 @@ class RevokeKeyView(View):
             access_key.status = 'revoked'
             access_key.save()
         return redirect('dashboard')
-
 
 class KeyDetailsView(View):
     def get(self, request, email):
@@ -107,3 +104,19 @@ class KeyDetailsView(View):
             return JsonResponse({'error': 'User not found'}, status=404)
         except AccessKey.DoesNotExist:
             return JsonResponse({'error': 'No active key found'}, status=404)
+
+class CustomPasswordResetView(PasswordResetView):
+    template_name = 'keys/password_reset.html'
+    form_class = CustomPasswordResetForm
+    success_url = reverse_lazy('password_reset_done')
+
+class CustomPasswordResetDoneView(PasswordResetDoneView):
+    template_name = 'keys/password_reset_done.html'
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    template_name = 'keys/password_reset_confirm.html'
+    form_class = CustomSetPasswordForm
+    success_url = reverse_lazy('password_reset_complete')
+
+class CustomPasswordResetCompleteView(PasswordResetCompleteView):
+    template_name = 'keys/password_reset_complete.html'
