@@ -69,7 +69,7 @@ class ProcureKeyView(View):
 
         # Generate a new key
         key = generate_random_string()
-        expiry_date = timezone.now() + timedelta(days=30)  # Set expiry date to 30 days from now
+        expiry_date = timezone.now() + timedelta(days=30)  # Expiry date set to 30 days from now
 
         # Save the new key to the database
         access_key = AccessKey.objects.create(
