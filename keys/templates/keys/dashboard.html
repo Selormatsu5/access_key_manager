@@ -3,7 +3,27 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
+<style>
+    .logout-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background-color: #f8f9fa;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    .logout-btn a {
+        color: #007bff;
+        text-decoration: underline;
+    }
+</style>
+
 <div class="container-fluid">
+    <button class="logout-btn">
+        <a href="/accounts/logout/">Logout</a>
+    </button>
     <div class="row">
         <div class="col-md-12">
             <h1 class="mt-4">Welcome, {{ user.username }}</h1>
