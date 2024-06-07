@@ -40,13 +40,25 @@
 
 </head>
 <body>
+    
+
     <div class="sidebar">
         <h2 class="text-center">Access Key Manager</h2>
-        <a href="/dashboard">Home</a>
-        <a href="signup/">Sign Up</a>
-        <a href="/login">Log In</a>
-        <a href="#">Link 3</a>
+        <a href="/dashboard">Dashboard</a>
+        <!--<a href="signup/">Sign Up</a>-->
+       <!-- <a href="/login">Log In</a> -->
+        <a href="/profile">Profile</a>
     </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}
+        </div>
+    {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="content">
         {% block content %}{% endblock %}
     </div>

@@ -121,10 +121,13 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For developm
 
 # SMTP configuration for production (example)
 EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_FROM = 'selormatsu5@gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'selormatsu5@gmail.com'
-EMAIL_HOST_PASSWORD = '_phantom_' 
+EMAIL_HOST_PASSWORD = 'wlitlwfxeebagcgk'
+
+PASSWORD_RESET_TIMEOUT = 1800
 
 SITE_ID = 1
 

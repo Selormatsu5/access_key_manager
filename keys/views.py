@@ -1,18 +1,63 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth.views import PasswordResetView, PasswordResetConfirmView, PasswordResetDoneView, PasswordResetCompleteView
+from django.contrib.auth.views import (
+    PasswordResetView,
+    PasswordResetConfirmView,
+    PasswordResetDoneView,
+    PasswordResetCompleteView
+)
+from django.contrib.auth import logout
+from django.contrib import messages
+from django.urls import reverse_lazy
+from django.template.loader import render_to_string
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import EmailMessage
 from .forms import CustomUserCreationForm, AccessKeyForm, CustomPasswordResetForm, CustomSetPasswordForm
 from .models import AccessKey, CustomUser
 from .utils import generate_random_string
+from .tokens import account_activation_token
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
-from datetime import timedelta
-from django.urls import reverse_lazy
+
+def activate(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = CustomUser.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+        user = None
+
+    if user is not None and account_activation_token.check_token(user, token):
+        user.is_active = True
+        user.save()
+        login(request, user)
+        messages.success(request, 'Your account has been confirmed.')
+        return redirect('dashboard')
+    else:
+        messages.error(request, 'The confirmation link was invalid, possibly because it has already been used.')
+        return redirect('login')
+
+def activateEmail(request, user, to_email):
+    mail_subject = 'Activate your user account.'
+    message = render_to_string('keys/template_activate_account.html', {
+        'user': user.username,
+        'domain': get_current_site(request).domain,
+        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+        'token': account_activation_token.make_token(user),
+        'protocol': 'https' if request.is_secure() else 'http'
+    })
+    email = EmailMessage(mail_subject, message, to=[to_email])
+    if email.send():
+        messages.success(request, f'Dear <b>{user}</b>, please go to your email <b>{to_email}</b> inbox and click on \
+            the received activation link to confirm and complete the registration. <b>Note:</b> Check your spam folder.')
+    else:
+        messages.error(request, f'Problem sending confirmation email to {to_email}, check if you typed it correctly.')
 
 class SignUpView(View):
     def get(self, request):
@@ -22,9 +67,14 @@ class SignUpView(View):
     def post(self, request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('dashboard')
+            user = form.save(commit=False)
+            user.is_active = False
+            user.save()
+            activateEmail(request, user, form.cleaned_data.get('email'))
+            return redirect('login')
+        else:
+            for error in list(form.errors.values()):
+                messages.error(request, error)
         return render(request, 'keys/signup.html', {'form': form})
 
 class LoginView(View):
@@ -49,61 +99,58 @@ class DashboardView(View):
     def get(self, request):
         user = request.user
         if user.user_type == 'IT':
-            access_keys = AccessKey.objects.filter(user=user)
+            active_keys = AccessKey.objects.filter(user=user, status='active')
+            previous_keys = AccessKey.objects.filter(user=user).exclude(status='active')
+            it_users = None
         elif user.user_type == 'Admin':
-            access_keys = AccessKey.objects.all()
+            active_keys = AccessKey.objects.filter(status='active')
+            previous_keys = AccessKey.objects.exclude(status='active')
+            it_users = CustomUser.objects.filter(user_type='IT')
+        else:
+            active_keys = AccessKey.objects.none()
+            previous_keys = AccessKey.objects.none()
+            it_users = None
+
         context = {
-            'access_keys': access_keys,
-            'active_keys_count': access_keys.filter(status='active').count(),
-            'expired_keys_count': access_keys.filter(status='expired').count(),
-            'revoked_keys_count': access_keys.filter(status='revoked').count(),
+            'active_keys': active_keys,
+            'previous_keys': previous_keys,
+            'active_keys_count': active_keys.count(),
+            'expired_keys_count': previous_keys.filter(status='expired').count(),
+            'revoked_keys_count': previous_keys.filter(status='revoked').count(),
+            'it_users': it_users,
         }
         return render(request, 'keys/dashboard.html', context)
 
-@method_decorator(login_required, name='dispatch')
-class ProcureKeyView(View):
-    def get(self, request):
-        if AccessKey.objects.filter(user=request.user, status='active').exists():
-            return render(request, 'keys/procure_key.html', {'error_message': 'You already have an active key.'})
-
-        # Generate a new key
-        key = generate_random_string()
-        expiry_date = timezone.now() + timedelta(days=30)  # Expiry date set to 30 days from now
-
-        # Save the new key to the database
-        access_key = AccessKey.objects.create(
-            user=request.user,
-            key=key,
-            status='active',
-            expiry_date=expiry_date
-        )
-
-        return redirect('key_list')
+    def post(self, request):
+        if request.POST.get('generate_key'):
+            if AccessKey.objects.filter(user=request.user, status='active').exists():
+                messages.error(request, 'You already have an active key.')
+            else:
+                key = generate_random_string()
+                expiry_date = timezone.now() + timedelta(days=1)  # Expiry date set to 30 days from now
+                AccessKey.objects.create(
+                    user=request.user,
+                    key=key,
+                    status='active',
+                    expiry_date=expiry_date
+                )
+                messages.success(request, 'New access key generated successfully.')
+        return redirect('dashboard')
 
 @method_decorator(login_required, name='dispatch')
 class RevokeKeyView(View):
     def post(self, request, key_id):
         if request.user.user_type == 'Admin':
-            access_key = AccessKey.objects.get(id=key_id)
+            access_key = get_object_or_404(AccessKey, id=key_id)
             access_key.status = 'revoked'
             access_key.save()
+            messages.success(request, 'Key has been revoked.')
         return redirect('dashboard')
 
-class KeyDetailsView(View):
-    def get(self, request, email):
-        try:
-            user = CustomUser.objects.get(email=email)
-            access_key = AccessKey.objects.get(user=user, status='active')
-            data = {
-                'status': access_key.status,
-                'date_of_procurement': access_key.date_of_procurement,
-                'expiry_date': access_key.expiry_date,
-            }
-            return JsonResponse(data, status=200)
-        except CustomUser.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
-        except AccessKey.DoesNotExist:
-            return JsonResponse({'error': 'No active key found'}, status=404)
+@method_decorator(login_required, name='dispatch')
+class ProfileView(View):
+    def get(self, request):
+        return render(request, 'keys/profile.html')
 
 class CustomPasswordResetView(PasswordResetView):
     template_name = 'keys/password_reset.html'
