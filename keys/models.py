@@ -7,6 +7,8 @@ from .utils import generate_random_string
 
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=20, blank=True, null=True)
+    other_names = models.CharField(max_length=20, blank=True, null=True)
     user_type_choices = [
         ('IT', 'School IT Personnel'),
         ('Admin', 'Micro-Focus Admin'),
@@ -14,7 +16,7 @@ class CustomUser(AbstractUser):
     user_type = models.CharField(max_length=5, choices=user_type_choices)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
+    REQUIRED_FIELDS = ['username', 'first_name', 'other_names']
 
     def __str__(self):
         return self.email

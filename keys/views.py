@@ -22,7 +22,7 @@ from .utils import generate_random_string
 from .tokens import account_activation_token
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from django.http import JsonResponse
+# from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 
@@ -36,7 +36,7 @@ def activate(request, uidb64, token):
     if user is not None and account_activation_token.check_token(user, token):
         user.is_active = True
         user.save()
-        login(request, user)
+        # login(request, user)
         messages.success(request, 'Your account has been confirmed.')
         return redirect('dashboard')
     else:

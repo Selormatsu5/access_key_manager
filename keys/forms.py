@@ -5,7 +5,8 @@ from .models import CustomUser, AccessKey
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = CustomUser
-        fields = ('username','email', 'password1', 'password2', 'user_type')
+        
+        fields = ('first_name', 'other_names','username','email', 'password1', 'password2', 'user_type')
 
 class AccessKeyForm(forms.ModelForm):
     class Meta:
