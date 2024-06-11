@@ -9,47 +9,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .sidebar {
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            background-color: #343a40;
-            color: #ffffff;
-            padding-top: 20px;
-        }
-        .sidebar a {
-            color: #ffffff;
-            padding: 10px 15px;
-            text-decoration: none;
-            display: block;
-        }
-        .sidebar a:hover {
-            background-color: #495057;
-        }
-        .content {
-            margin-left: 250px;
-            padding: 20px;
-        }
+        
     </style>
-    {% block extra_head %}HomePage{% endblock %}
 
 </head>
 <body>
     
 
-    <div class="sidebar">
-        <h2 class="text-center">Access Key Manager</h2>
-        <a href="/dashboard">Dashboard</a>
-        <!--<a href="signup/">Sign Up</a>-->
-       <!-- <a href="/login">Log In</a> -->
-        <a href="/profile">Profile</a>
-    </div>
-
+    
     {% if messages %}
     <div class="messages">
         {% for message in messages %}

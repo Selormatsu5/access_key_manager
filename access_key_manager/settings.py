@@ -113,7 +113,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    #'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
@@ -129,7 +129,7 @@ EMAIL_HOST_PASSWORD = 'wlitlwfxeebagcgk'
 
 PASSWORD_RESET_TIMEOUT = 1800
 
-SITE_ID = 1
+SITE_ID = 2
 
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
@@ -166,5 +166,5 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGOUT_REDIRECT_URL= '/login'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/dashboard'
 
