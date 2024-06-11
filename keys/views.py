@@ -10,7 +10,7 @@ from django.contrib.auth.views import (
 )
 from django.contrib.auth import logout
 from django.contrib import messages
-from django.urls import reverse_lazy,reverse
+from django.urls import reverse_lazy, reverse
 from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -22,7 +22,6 @@ from .utils import generate_random_string
 from .tokens import account_activation_token
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils.decorators import method_decorator
-# from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth import get_user_model
@@ -45,6 +44,7 @@ def activate(request, uidb64, token):
     else:
         messages.error(request, 'The confirmation link was invalid, possibly because it has already been used.')
         return redirect('login')
+
 
 def activateEmail(request, user, to_email):
     mail_subject = 'Activate your user account.'
@@ -85,6 +85,7 @@ class SignUpView(View):
                 messages.error(request, error)
         return render(request, 'keys/signup.html', {'form': form})
 
+
 class LoginView(View):
     def get(self, request):
         form = AuthenticationForm()
@@ -99,23 +100,31 @@ class LoginView(View):
             )
             if user is not None:
                 login(request, user)
-                return redirect('redirect_dashboard')
+                # Directly call the function to redirect based on group
+                return redirect_dashboard(request)
+        # If form is invalid, re-render login page with form
         return render(request, 'keys/login.html', {'form': form})
+
 
 @login_required
 def redirect_dashboard(request):
     user = request.user
+    print(f"Redirecting user: {user.email}, Groups: {user.groups.all()}")
+
     if user.groups.filter(name='Admin').exists():
+        print("Redirecting to Admin Dashboard")
         return redirect(reverse('admin_dashboard'))  # Redirect to admin dashboard URL name
     elif user.groups.filter(name='IT Personnel').exists():
+        print("Redirecting to IT Dashboard")
         return redirect(reverse('it_dashboard'))  # Redirect to IT dashboard URL name
     else:
+        print("No matching group, redirecting to login")
         return redirect(reverse('login'))  # Or another default page
-
 
 
 def is_admin(user):
     return user.groups.filter(name='Admin').exists()
+
 
 def is_it_personnel(user):
     return user.groups.filter(name='IT Personnel').exists()
@@ -187,23 +196,28 @@ class RevokeKeyView(View):
             messages.success(request, 'Key has been revoked.')
         return redirect('dashboard')
 
+
 @method_decorator(login_required, name='dispatch')
 class ProfileView(View):
     def get(self, request):
         return render(request, 'keys/profile.html')
+
 
 class CustomPasswordResetView(PasswordResetView):
     template_name = 'keys/password_reset.html'
     form_class = CustomPasswordResetForm
     success_url = reverse_lazy('password_reset_done')
 
+
 class CustomPasswordResetDoneView(PasswordResetDoneView):
     template_name = 'keys/password_reset_done.html'
+
 
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = 'keys/password_reset_confirm.html'
     form_class = CustomSetPasswordForm
     success_url = reverse_lazy('password_reset_complete')
+
 
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = 'keys/password_reset_complete.html'

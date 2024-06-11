@@ -8,6 +8,13 @@ class CustomUserCreationForm(UserCreationForm):
         
         fields = ('first_name', 'other_names','username','email', 'password1', 'password2', 'user_type')
 
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user_type = self.cleaned_data['user_type']
+        if commit:
+            user.save()
+        return user
+
 class AccessKeyForm(forms.ModelForm):
     class Meta:
         model = AccessKey
