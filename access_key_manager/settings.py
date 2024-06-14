@@ -85,10 +85,10 @@ WSGI_APPLICATION = 'access_key_manager.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'access_manager_db',      # Replace with your PostgreSQL database name
-        'USER': 'postgres',      # Replace with your PostgreSQL user
-        'PASSWORD': '_phantom_',  # Replace with your PostgreSQL password
-        'HOST': 'localhost',         # Replace with your PostgreSQL host (usually 'localhost')
+        'NAME': 'access_manager_db',
+        'USER': 'postgres',
+        'PASSWORD': '_phantom_',
+        'HOST': 'localhost',
         'PORT': '5432',
     }
 }
