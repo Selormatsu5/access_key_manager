@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 200px;
+            background: #333;
+            color: #fff;
+            padding: 15px;
+            height: 100vh;
+            position: fixed;
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .sidebar ul li {
+            margin: 20px 0;
+        }
+
+        .sidebar ul li a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+            width: 100%;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <ul>
+            <li><a href="{% url 'it_dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'myprofile' %}">Profile</a></li>
+            <li>
+                <form id="logout-form" action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-btn">Logout</button>
+                </form>
+            </a></li>
+        </ul>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}
+        </div>
+    {% endfor %}
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+    
+</body>
+</html>

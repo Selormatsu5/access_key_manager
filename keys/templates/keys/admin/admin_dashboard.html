@@ -1,0 +1,48 @@
+{% extends 'keys/admin/admin_base.html' %}
+
+{% load custom_filters %}
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Dashboard{% endblock %}</title>
+</head>
+<body>
+    {% block content %}
+    <div class="content">
+        <h1>Dashboard</h1>
+        <div>
+            <h2>IT Personnel Users</h2>
+            <ul>
+                {% for user in it_users %}
+                    <li>{{ user.username }} ({{ user.email }})
+                        <ul>
+                            {% if it_keys|get_item:user %}
+                                {% for key in it_keys|get_item:user %}
+                                    <li>
+                                        Key: {{ key.key }} - Status: <b>{{ key.status }}</b>
+                                        {% if key.status == 'active' %}
+                                            <form method="post" style="display:inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="key_id" value="{{ key.id }}">
+                                                <button type="submit" name="revoke_key">Revoke</button>
+                                            </form>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            {% else %}
+                                <li>No keys found for this user</li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                {% empty %}
+                    <li>No IT Personnel found</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endblock %}
+</body>
+</html>

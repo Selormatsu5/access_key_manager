@@ -1,0 +1,78 @@
+{% extends 'keys/it/it_base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Dashboard{% endblock %}</title>
+</head>
+<body>
+    {% block content %}
+    
+    <div class="content">
+    <h1>IT Dashboard</h1><hr>
+    <br>
+    
+    <h2>Active Key</h2>
+    {% if active_key %}
+        <p>Key: {{ active_key.key }}</p>
+        <p>Expiry Date: {{ active_key.expiry_date }}</p>
+    {% else %}
+        <p>No active key available.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" name="generate_key">Generate New Key</button>
+        </form>
+    {% endif %}
+    <br>
+
+    <h2>Expired Keys</h2>
+    {% if expired_keys %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Expiry Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key in expired_keys %}
+                <tr>
+                    <td>{{ key.key }}</td>
+                    <td>{{ key.expiry_date }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>N/A</p>
+    {% endif %}
+    <br>
+
+    <h2>Revoked Keys</h2>
+    {% if revoked_keys %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Revoked Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key in revoked_keys %}
+                <tr>
+                    <td>{{ key.key }}</td>
+                    <td>
+                        {{ key.revoked_date }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>N/A</p>
+    {% endif %}
+
+    </div>
+    {% endblock %}
+</body>
+</html>

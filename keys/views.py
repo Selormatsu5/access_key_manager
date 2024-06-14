@@ -26,7 +26,6 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth import get_user_model
 
-
 def activate(request, uidb64, token):
     User = get_user_model()
     try:
@@ -119,7 +118,7 @@ def redirect_dashboard(request):
         return redirect(reverse('it_dashboard'))  # Redirect to IT dashboard URL name
     else:
         print("No matching group, redirecting to login")
-        return redirect(reverse('login'))  # Or another default page
+        return redirect(reverse('login'))
 
 
 def is_admin(user):
@@ -141,14 +140,13 @@ class AdminDashboardView(View):
             'it_users': it_users,
             'it_keys': it_keys
         }
-        return render(request, 'keys/admin_dashboard.html', context)
+        return render(request, 'keys/admin/admin_dashboard.html', context)
 
     def post(self, request):
         if 'revoke_key' in request.POST:
             key_id = request.POST.get('key_id')
             access_key = get_object_or_404(AccessKey, id=key_id)
-            access_key.status = 'revoked'
-            access_key.save()
+            access_key.revoke()
             messages.success(request, 'Key has been revoked.')
         return redirect('admin_dashboard')
 
@@ -159,30 +157,25 @@ class ITDashboardView(View):
     def get(self, request):
         user = request.user
         active_key = AccessKey.objects.filter(user=user, status='active').first()
-        previous_keys = AccessKey.objects.filter(user=user).exclude(status='active')
+        expired_keys = AccessKey.objects.filter(user=user, status='expired')
+        revoked_keys = AccessKey.objects.filter(user=user, status='revoked')
 
         context = {
             'active_key': active_key,
-            'previous_keys': previous_keys,
+            'expired_keys': expired_keys,
+            'revoked_keys': revoked_keys,
             'has_active_key': active_key is not None
         }
-        return render(request, 'keys/it_dashboard.html', context)
+        return render(request, 'keys/it/it_dashboard.html', context)
 
     def post(self, request):
         if 'generate_key' in request.POST:
             user = request.user
-            if AccessKey.objects.filter(user=user, status='active').exists():
-                messages.error(request, 'You already have an active key.')
-            else:
-                key = generate_random_string()
-                expiry_date = timezone.now() + timedelta(days=30)  # Key valid for 30 days
-                AccessKey.objects.create(
-                    user=user,
-                    key=key,
-                    status='active',
-                    expiry_date=expiry_date
-                )
+            try:
+                AccessKey.create_key(user)
                 messages.success(request, 'New access key generated successfully.')
+            except ValueError as e:
+                messages.error(request, str(e))
         return redirect('it_dashboard')
 
 
@@ -191,16 +184,21 @@ class RevokeKeyView(View):
     def post(self, request, key_id):
         if request.user.user_type == 'Admin':
             access_key = get_object_or_404(AccessKey, id=key_id)
-            access_key.status = 'revoked'
-            access_key.save()
+            access_key.revoke()
             messages.success(request, 'Key has been revoked.')
-        return redirect('dashboard')
+        return redirect('admin_dashboard')
 
 
 @method_decorator(login_required, name='dispatch')
-class ProfileView(View):
+class ITProfileView(View):
     def get(self, request):
-        return render(request, 'keys/profile.html')
+        return render(request, 'keys/it/profile.html')
+
+
+@method_decorator(login_required, name='dispatch')
+class AdminProfileView(View):
+    def get(self, request):
+        return render(request, 'keys/admin/profile.html')
 
 
 class CustomPasswordResetView(PasswordResetView):
