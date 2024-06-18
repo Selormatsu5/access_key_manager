@@ -7,7 +7,50 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // JavaScript for auto-hiding alerts
+        document.addEventListener("DOMContentLoaded", function() {
+            var alerts = document.querySelectorAll('.alert');
+            if (alerts) {
+                alerts.forEach(function(alert) {
+                    setTimeout(function() {
+                        alert.classList.add('alert-hide');
+                        setTimeout(function() {
+                            alert.remove();
+                        }, 500); // Remove after transition
+                    }, 3000); // Hide after 3 seconds
+                });
+            }
+        });
+    </script>
     <style>
+        .page{
+            width: 60%;
+            padding: 10px;
+            margin-left: 18%;
+            justify-self: center;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 9999;
+            width: 300px;
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        .alert-success { background-color: #dff0d8; color: #3c763d; }
+        .alert-info { background-color: #d9edf7; color: #31708f; }
+        .alert-warning { background-color: #fcf8e3; color: #8a6d3b; }
+        .alert-danger { background-color: #f2dede; color: #a94442; }
+        .alert-hide {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
         
     </style>
 
@@ -16,14 +59,15 @@
     
 
     
-    {% if messages %}
-    <div class="messages">
-        {% for message in messages %}
-        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}
-        </div>
-    {% endfor %}
+    <div id="alert-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
     </div>
-    {% endif %}
 
     <div class="content">
         {% block content %}{% endblock %}

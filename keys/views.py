@@ -1,66 +1,54 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.views import (
-    PasswordResetView,
-    PasswordResetConfirmView,
-    PasswordResetDoneView,
-    PasswordResetCompleteView
+    PasswordResetCompleteView,
+    PasswordChangeView
 )
-from django.contrib.auth import logout
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from django.template.loader import render_to_string
-from django.contrib.sites.shortcuts import get_current_site
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-from django.core.mail import EmailMessage
-from .forms import CustomUserCreationForm, AccessKeyForm, CustomPasswordResetForm, CustomSetPasswordForm
-from .models import AccessKey, CustomUser
-from .utils import generate_random_string
-from .tokens import account_activation_token
+from .forms import (
+    CustomUserCreationForm,
+    OTPVerificationForm, 
+    PasswordResetRequestForm, 
+    OTPVerificationForm, 
+    CustomSetPasswordForm, 
+    CustomPasswordChangeForm,
+)
+from .models import AccessKey, CustomUser, OTP
+from .utils import generate_otp, send_otp_via_email
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils.decorators import method_decorator
-from django.utils import timezone
-from datetime import timedelta
-from django.contrib.auth import get_user_model
-
-def activate(request, uidb64, token):
-    User = get_user_model()
-    try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        user = None
-
-    if user is not None and account_activation_token.check_token(user, token):
-        user.is_active = True
-        user.save()
-        login(request, user)
-        messages.success(request, 'Your account has been confirmed.')
-        return redirect('confirmation_page')
-    else:
-        messages.error(request, 'The confirmation link was invalid, possibly because it has already been used.')
-        return redirect('login')
+# from django.utils import timezone
+from django.contrib.auth import get_user_model 
 
 
-def activateEmail(request, user, to_email):
-    mail_subject = 'Activate your user account.'
-    message = render_to_string('keys/template_activate_account.html', {
-        'user': user.username,
-        'domain': get_current_site(request).domain,
-        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-        'token': account_activation_token.make_token(user),
-        'protocol': 'https' if request.is_secure() else 'http'
-    })
-    email = EmailMessage(mail_subject, message, to=[to_email])
-    if email.send():
-        messages.success(request, f'Dear <b>{user}</b>, please go to your email <b>{to_email}</b> inbox and click on \
-            the received activation link to confirm and complete the registration. <b>Note:</b> Check your spam folder.')
-    else:
-        messages.error(request, f'Problem sending confirmation email to {to_email}, check if you typed it correctly.')
+User = get_user_model()
+class OTPVerificationView(View):
+    def get(self, request):
+        form = OTPVerificationForm()
+        return render(request, 'keys/verify_otp.html', {'form': form})
 
+    def post(self, request):
+        form = OTPVerificationForm(request.POST)
+        if form.is_valid():
+            otp_code = form.cleaned_data['otp_code']
+            user_id = request.session.get('user_id')
+            user = get_object_or_404(User, pk=user_id)
+            otp_record = OTP.objects.filter(user=user, otp_code=otp_code, is_used=False).first()
+
+            if otp_record and not otp_record.is_expired():
+                otp_record.is_used = True
+                otp_record.save()
+                user.is_active = True
+                user.save()
+                login(request, user)
+                # messages.success(request, 'Your account has been activated successfully.')
+                return redirect('confirmation_page')
+            else:
+                messages.error(request, 'Invalid or expired OTP.')
+        return render(request, 'keys/verify_otp.html', {'form': form})
 
 def ConfirmationPage(request):
     return render(request, 'keys/confirmation_page.html')
@@ -69,26 +57,25 @@ def ConfirmationPage(request):
 class SignUpView(View):
     def get(self, request):
         form = CustomUserCreationForm()
-        return render(request, 'keys/signup.html', {'form': form})
+        return render(request, 'keys/split_signup.html', {'form': form})
 
     def post(self, request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = False
-            user.save()
-            activateEmail(request, user, form.cleaned_data.get('email'))
-            return redirect('login')
+            user = form.save()
+            send_otp_via_email(user)
+            messages.info(request, 'Please check your email for the OTP.')
+            request.session['user_id'] = user.id  # Store user ID in session for OTP verification
+            return redirect('verify_otp')
         else:
-            for error in list(form.errors.values()):
-                messages.error(request, error)
-        return render(request, 'keys/signup.html', {'form': form})
+            messages.error(request, 'Error in registration form. Please try again.')
+        return render(request, 'keys/split_signup.html', {'form': form})
 
 
 class LoginView(View):
     def get(self, request):
         form = AuthenticationForm()
-        return render(request, 'keys/login.html', {'form': form})
+        return render(request, 'keys/split_login.html', {'form': form})
 
     def post(self, request):
         form = AuthenticationForm(request, data=request.POST)
@@ -102,7 +89,7 @@ class LoginView(View):
                 # Directly call the function to redirect based on group
                 return redirect_dashboard(request)
         # If form is invalid, re-render login page with form
-        return render(request, 'keys/login.html', {'form': form})
+        return render(request, 'keys/split_login.html', {'form': form})
 
 
 @login_required
@@ -199,22 +186,118 @@ class ITProfileView(View):
 class AdminProfileView(View):
     def get(self, request):
         return render(request, 'keys/admin/profile.html')
+    
+class AdminCustomPasswordChangeView(PasswordChangeView):
+    form_class = CustomPasswordChangeForm
+    template_name = 'keys/admin/change_password.html'
+    success_url = reverse_lazy('profile')  # User would be redirected to profile after successful password change
+
+    def form_valid(self, form):
+        # Save the new password and update the user's session
+        user = form.save()
+        update_session_auth_hash(self.request, user)  # This would keep the user logged in
+        messages.success(self.request, 'Your password was successfully updated!')
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        return super().form_invalid(form)
 
 
-class CustomPasswordResetView(PasswordResetView):
-    template_name = 'keys/password_reset.html'
-    form_class = CustomPasswordResetForm
-    success_url = reverse_lazy('password_reset_done')
+class ITCustomPasswordChangeView(PasswordChangeView):
+    form_class = CustomPasswordChangeForm
+    template_name = 'keys/it/reset_password.html'
+    success_url = reverse_lazy('myprofile')  # Redirect to profile after successful password change
+
+    def form_valid(self, form):
+        # Save the new password and update the user's session
+        user = form.save()
+        update_session_auth_hash(self.request, user)  # Important to keep the user logged in
+        messages.success(self.request, 'Your password was successfully updated!')
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Please correct the error below.')
+        return super().form_invalid(form)
 
 
-class CustomPasswordResetDoneView(PasswordResetDoneView):
-    template_name = 'keys/password_reset_done.html'
+class PasswordResetRequestView(View):
+    def get(self, request):
+        form = PasswordResetRequestForm()
+        return render(request, 'keys/password_reset_request.html', {'form': form})
+
+    def post(self, request):
+        form = PasswordResetRequestForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            user = get_object_or_404(User, email=email)
+            
+            # Generate or update the OTP for the user
+            otp_code = generate_otp(user)
+
+            # Send the OTP via email
+            send_otp_via_email(user, otp_code)
+
+            
+            request.session['reset_user_id'] = user.id
+            return redirect('otp_verification')
+        return render(request, 'keys/password_reset_request.html', {'form': form})
 
 
-class CustomPasswordResetConfirmView(PasswordResetConfirmView):
-    template_name = 'keys/password_reset_confirm.html'
-    form_class = CustomSetPasswordForm
-    success_url = reverse_lazy('password_reset_complete')
+
+class PasswordResetOTPVerificationView(View):
+    def get(self, request):
+        form = OTPVerificationForm()
+        return render(request, 'keys/otp_verification.html', {'form': form})
+
+    def post(self, request):
+        form = OTPVerificationForm(request.POST)
+        if form.is_valid():
+            otp_code = form.cleaned_data['otp_code']
+            user_id = request.session.get('reset_user_id')
+
+            if user_id:
+                user = get_object_or_404(User, pk=user_id)
+                otp_record = OTP.objects.filter(user=user, otp_code=otp_code, is_used=False).first()
+
+                if otp_record and not otp_record.is_expired():
+                    otp_record.is_used = True
+                    otp_record.save()
+
+                    messages.success(request, 'OTP verified. You can now reset your password.')
+                    request.session['otp_verified_user_id'] = user_id
+                    return redirect('password_reset_form')
+                else:
+                    messages.error(request, 'Invalid or expired OTP.')
+            else:
+                messages.error(request, 'Session expired. Please request a new password reset.')
+                return redirect('password_reset_request')
+
+        return render(request, 'keys/otp_verification.html', {'form': form})
+
+
+class PasswordResetFormView(View):
+    def get(self, request):
+        form = CustomSetPasswordForm(user=request.user)
+        return render(request, 'keys/password_reset_form.html', {'form': form})
+
+    def post(self, request):
+        user_id = request.session.get('otp_verified_user_id')
+        if user_id:
+            user = get_object_or_404(User, pk=user_id)
+            form = CustomSetPasswordForm(user=user, data=request.POST)
+
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Your password has been reset successfully.')
+                return redirect('login')
+            else:
+                messages.error(request, 'Please correct the errors below.')
+
+        else:
+            messages.error(request, 'Session expired. Please request a new password reset.')
+            return redirect('password_reset_request')
+
+        return render(request, 'keys/password_reset_form.html', {'form': form})
 
 
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):

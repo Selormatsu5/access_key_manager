@@ -1,9 +1,10 @@
-from django.db import models, IntegrityError
+from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from .utils import generate_random_string
+from django.contrib.auth import get_user_model  
 
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
@@ -71,6 +72,7 @@ class AccessKey(models.Model):
                 # Issue a new key by updating the existing record
                 existing_key.key = generate_random_string(16).upper()
                 existing_key.status = 'active'
+                existing_key.date_of_procurement = timezone.now()
                 existing_key.expiry_date = timezone.now() + timedelta(days=30)
                 existing_key.revoked_date = None
                 existing_key.save()
@@ -81,3 +83,17 @@ class AccessKey(models.Model):
             new_key = AccessKey(user=user, status='active', expiry_date=expiry_date)
             new_key.save()
             return new_key
+
+
+class OTP(models.Model):
+    User = get_user_model()
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    otp_code = models.CharField(max_length=6, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+
+    def is_expired(self):
+        return self.created_at < timezone.now() - timedelta(minutes=2)  # OTP expires in 2 minutes
+
+    def __str__(self):
+        return f'OTP for {self.user.email}'
