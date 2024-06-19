@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=20, blank=True, null=True)
-    other_names = models.CharField(max_length=20, blank=True, null=True)
+    other_names = models.CharField(max_length=100, blank=True, null=True)
     user_type_choices = [
         ('IT', 'School IT Personnel'),
         ('Admin', 'Micro-Focus Admin'),
@@ -29,7 +29,7 @@ class AccessKey(models.Model):
         ('revoked', 'Revoked'),
     ]
 
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     key = models.CharField(max_length=16, unique=True, default=generate_random_string)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
     date_of_procurement = models.DateTimeField(auto_now_add=True)
@@ -38,9 +38,9 @@ class AccessKey(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.expiry_date:
-            self.expiry_date = timezone.now() + timedelta(days=30)  # Set default expiry to 30 days from now
+            self.expiry_date = timezone.now() + timedelta(days=30)  # Set default expiry date if not provided
         if not self.key:
-            self.key = generate_random_string(16).upper()
+            self.key = generate_random_string(16).upper()  # Generate a new key if not provided
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -60,29 +60,22 @@ class AccessKey(models.Model):
 
     @staticmethod
     def create_key(user):
-        try:
-            # Check for existing key
-            existing_key = AccessKey.objects.get(user=user)
-            
-            if existing_key.status == 'active':
-                raise ValueError('User already has an active key.')
-            else:
-                # Revoke the existing key
-                existing_key.revoke()
-                # Issue a new key by updating the existing record
-                existing_key.key = generate_random_string(16).upper()
-                existing_key.status = 'active'
-                existing_key.date_of_procurement = timezone.now()
-                existing_key.expiry_date = timezone.now() + timedelta(days=30)
-                existing_key.revoked_date = None
-                existing_key.save()
-                return existing_key
-        except AccessKey.DoesNotExist:
-            # If no existing key, create a new one
-            expiry_date = timezone.now() + timedelta(days=30)
-            new_key = AccessKey(user=user, status='active', expiry_date=expiry_date)
-            new_key.save()
-            return new_key
+        # Deactivate any existing active key
+        active_keys = AccessKey.objects.filter(user=user, status='active')
+        for key in active_keys:
+            key.revoke()  # Revoke the existing active keys
+
+        # Create a new key
+        new_key = AccessKey(
+            user=user,
+            status='active',
+            expiry_date=timezone.now() + timedelta(days=30),
+            date_of_procurement=timezone.now(),
+            key=generate_random_string(16).upper()
+        )
+        new_key.save()
+        return new_key
+
 
 
 class OTP(models.Model):

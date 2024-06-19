@@ -4,15 +4,17 @@
 
 {% block content %}
     <div class="container-fluid">
-        <h1>IT Dashboard</h1>
-        <hr><br>
+        <h1>Dashboard</h1><hr>
+        <br>
 
-        <div class="card">
-            <div class="card-header bg-secondary text-white"><h2>Active Key</h2></div>
+        <!-- Active Key Section -->
+        <div class="card mb-4">
+            <div class="card-header" style="background-color: rgb(214, 214, 214);"><h2>Active Key</h2></div>
             <div class="card-body">
                 {% if active_key %}
-                    <b><p>Key:</b> {{ active_key.key }}</p>
-                    <b><p>Expiry Date:</b> {{ active_key.expiry_date }}</p>
+                    <p><strong>Key:</strong> {{ active_key.key }}</p>
+                    <p><strong>Expiry Date:</strong> {{ active_key.expiry_date }}</p>
+                    <p><strong>Procurement Date:</strong> {{ active_key.date_of_procurement }}</p>
                 {% else %}
                     <p>No active key available.</p>
                     <form method="post">
@@ -22,17 +24,18 @@
                 {% endif %}
             </div>
         </div>
-        <br>
 
-        <div class="card mt-4">
-            <div class="card-header bg-secondary text-white"><h2>Expired Keys</h2></div>
+        <!-- Expired Keys Section -->
+        <div class="card mb-4">
+            <div class="card-header" style="background-color: rgb(214, 214, 214);"><h2>Expired Keys</h2></div>
             <div class="card-body">
                 {% if expired_keys %}
                     <table class="table">
-                        <thead class="thead-dark">
+                        <thead>
                             <tr>
                                 <th>Key</th>
                                 <th>Expiry Date</th>
+                                <th>Procurement Date</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -40,6 +43,7 @@
                             <tr>
                                 <td>{{ key.key }}</td>
                                 <td>{{ key.expiry_date }}</td>
+                                <td>{{ key.date_of_procurement }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -49,17 +53,18 @@
                 {% endif %}
             </div>
         </div>
-        <br>
 
-        <div class="card mt-4">
-            <div class="card-header bg-secondary text-white"><h2>Revoked Keys</h2></div>
+        <!-- Revoked Keys Section -->
+        <div class="card mb-4">
+            <div class="card-header" style="background-color: rgb(214, 214, 214);"><h2>Revoked Keys</h2></div>
             <div class="card-body">
                 {% if revoked_keys %}
                     <table class="table">
-                        <thead class="thead-dark">
+                        <thead>
                             <tr>
                                 <th>Key</th>
                                 <th>Revoked Date</th>
+                                <th>Procurement Date</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -67,6 +72,7 @@
                             <tr>
                                 <td>{{ key.key }}</td>
                                 <td>{{ key.revoked_date }}</td>
+                                <td>{{ key.date_of_procurement }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -76,7 +82,6 @@
                 {% endif %}
             </div>
         </div>
-
     </div>
-    <br>
 {% endblock %}
+
