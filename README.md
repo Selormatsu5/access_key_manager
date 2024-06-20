@@ -1,4 +1,4 @@
-ACCESS KEY MANAGEMENT SYSTEM
+# ACCESS KEY MANAGEMENT SYSTEM
 
 This system is designed to generate unique access keys in form of strings, for IT personnel. Each access key generated has a length of 16 characters, and has an expiry date, which is set to 30 days after creation
 
@@ -18,7 +18,7 @@ This system is designed to generate unique access keys in form of strings, for I
     PostgreSQL or any other compatible database
 
 
-#INSTALLATION
+# INSTALLATION
     #Clone repository
     git clone https://github.com/selormatsu5/access_key_manager.git
     cd access_key_manager
