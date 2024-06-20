@@ -54,5 +54,3 @@ This system is designed to generate unique access keys in form of strings, for I
 
 
 This app is simple and easy to use.
-I have and tested this app, and is free from any major bugs.
-You can contact me if you're facing any challenges concerning the app
