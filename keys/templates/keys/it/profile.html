@@ -12,11 +12,6 @@
     <p>Other Names: {{ user.other_names }}</p>
     <p>Email: {{ user.email }}</p>
     <a href="{% url 'reset_password' %}" class="btn btn-secondary">Change Password</a>
-
-    <button class="btn btn-primary" type="button" disabled>
-        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
-        <span class="visually-hidden" role="status">Loading...</span>
-    </button>
 </div>
 
 {% endblock %}
