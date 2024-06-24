@@ -28,7 +28,7 @@ User = get_user_model()
 class OTPVerificationView(View):
     def get(self, request):
         form = OTPVerificationForm()
-        return render(request, 'keys/verify_otp.html', {'form': form})
+        return render(request, 'keys/otp_verification.html', {'form': form})
 
     def post(self, request):
         form = OTPVerificationForm(request.POST)
@@ -48,7 +48,7 @@ class OTPVerificationView(View):
                 return redirect('confirmation_page')
             else:
                 messages.error(request, 'Invalid or expired OTP.')
-        return render(request, 'keys/verify_otp.html', {'form': form})
+        return render(request, 'keys/otp_verification.html', {'form': form})
 
 def ConfirmationPage(request):
     return render(request, 'keys/confirmation_page.html')
@@ -63,7 +63,8 @@ class SignUpView(View):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            send_otp_via_email(user)
+            otp_code = generate_otp(user)
+            send_otp_via_email(user,otp_code)
             messages.info(request, 'Please check your email for the OTP.')
             request.session['user_id'] = user.id  # Store user ID in session for OTP verification
             return redirect('verify_otp')
