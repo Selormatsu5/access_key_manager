@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, PasswordResetForm, SetPasswordForm, PasswordChangeForm
+from django.contrib.auth.forms import UserCreationForm, SetPasswordForm, PasswordChangeForm
 from .models import CustomUser, AccessKey
 
 class CustomUserCreationForm(UserCreationForm):
@@ -24,7 +24,10 @@ class OTPVerificationForm(forms.Form):
     otp_code = forms.CharField(max_length=6, required=True, label='OTP Code')
 
 class PasswordResetRequestForm(forms.Form):
-    email = forms.EmailField(max_length=254, required=True, label='Email')
+    email = forms.EmailField(
+        max_length=254, required=True, label='Email', 
+        widget=forms.EmailInput(attrs={'placeholder':'Example: john@mail.com'})
+    )
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -40,14 +43,14 @@ class CustomSetPasswordForm(SetPasswordForm):
 class CustomPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(
         label='Old Password',
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder':'Enter your old password'}),
     )
     new_password1 = forms.CharField(
         label='New Password',
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder':'Enter your new password'}),
     )
     new_password2 = forms.CharField(
         label='Confirm New Password',
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder':'Confirm new password'}),
     )
 

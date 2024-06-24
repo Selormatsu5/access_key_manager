@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, AccessKey
+from .models import CustomUser, AccessKey, OTP
 
 class CustomUserAdmin(UserAdmin):
     # Display these fields in the list view of the admin
@@ -35,3 +35,5 @@ class AccessKeyAdmin(admin.ModelAdmin):
     list_filter = ('status',)
 
 admin.site.register(AccessKey, AccessKeyAdmin)
+
+admin.site.register(OTP)
