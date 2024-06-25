@@ -25,10 +25,12 @@ from django.contrib.auth import get_user_model
 
 
 User = get_user_model()
+# This OTP verification is for user registration
 class OTPVerificationView(View):
     def get(self, request):
         form = OTPVerificationForm()
-        return render(request, 'keys/otp_verification.html', {'form': form})
+        messages.info(request, 'Please check your email for the OTP.')
+        return render(request, 'keys/verify_otp.html', {'form': form})
 
     def post(self, request):
         form = OTPVerificationForm(request.POST)
@@ -48,7 +50,7 @@ class OTPVerificationView(View):
                 return redirect('confirmation_page')
             else:
                 messages.error(request, 'Invalid or expired OTP.')
-        return render(request, 'keys/otp_verification.html', {'form': form})
+        return render(request, 'keys/verify_otp.html', {'form': form})
 
 def ConfirmationPage(request):
     return render(request, 'keys/confirmation_page.html')
@@ -65,7 +67,7 @@ class SignUpView(View):
             user = form.save()
             otp_code = generate_otp(user)
             send_otp_via_email(user,otp_code)
-            messages.info(request, 'Please check your email for the OTP.')
+            
             request.session['user_id'] = user.id  # Store user ID in session for OTP verification
             return redirect('verify_otp')
         else:
@@ -240,7 +242,7 @@ class PasswordResetRequestView(View):
 
             
             request.session['reset_user_id'] = user.id
-            return redirect('otp_verification')
+            return redirect(reverse('password_reset_otp'))
         return render(request, 'keys/password_reset_request.html', {'form': form})
 
 
